@@ -12,8 +12,8 @@ mongoose.connect(process.env.MONGO_URI, {
 }).then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB connection error:', err));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Only use urlencoded for form data, not JSON
+app.use(express.urlencoded({ extended: false }));
 
 app.use(cors())
 app.use(express.static('public'))
@@ -24,7 +24,7 @@ app.get('/', (req, res) => {
 // Create a new user
 app.post('/api/users', async (req, res) => {
   const username = req.body.username;
-  if (!username) return res.status(400).json({ error: 'Username required' });
+  if (!username) return res.send('Username required');
   let user = await User.findOne({ username });
   if (!user) {
     user = new User({ username });
@@ -44,7 +44,7 @@ app.post('/api/users/:_id/exercises', async (req, res) => {
   const userId = req.params._id;
   const { description, duration, date } = req.body;
   const user = await User.findById(userId);
-  if (!user) return res.status(400).json({ error: 'User not found' });
+  if (!user) return res.send('User not found');
   let exerciseDate = date ? new Date(date) : new Date();
   if (exerciseDate.toString() === 'Invalid Date') exerciseDate = new Date();
   const exercise = new Exercise({
@@ -57,7 +57,7 @@ app.post('/api/users/:_id/exercises', async (req, res) => {
   res.json({
     username: user.username,
     description: exercise.description,
-    duration: exercise.duration,
+    duration: Number(exercise.duration),
     date: exercise.date.toDateString(),
     _id: user._id
   });
@@ -67,7 +67,7 @@ app.post('/api/users/:_id/exercises', async (req, res) => {
 app.get('/api/users/:_id/logs', async (req, res) => {
   const { from, to, limit } = req.query;
   const user = await User.findById(req.params._id);
-  if (!user) return res.status(400).json({ error: 'User not found' });
+  if (!user) return res.send('User not found');
   let filter = { userId: user._id };
   if (from || to) {
     filter.date = {};
