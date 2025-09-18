@@ -34,42 +34,25 @@ app.get("/", (req, res) => {
 // ✅ Create new user
 app.post("/api/users", async (req, res) => {
   try {
-    console.log("📩 POST /api/users body:", req.body);
-
     const user = new User({ username: req.body.username });
     const savedUser = await user.save();
-
-    const response = { username: savedUser.username, _id: savedUser._id };
-    console.log("📤 Response:", response);
-
-    res.json(response);
+    res.json({ username: savedUser.username, _id: savedUser._id });
   } catch (err) {
-    console.error("❌ Error creating user:", err.message);
     res.status(500).json({ error: "Unable to create user" });
   }
 });
 
 // ✅ Get all users
 app.get("/api/users", async (req, res) => {
-  console.log("📩 GET /api/users");
-
   const users = await User.find({}, "username _id");
-  console.log("📤 Response:", users);
-
   res.json(users);
 });
 
 // ✅ Add exercise
 app.post("/api/users/:_id/exercises", async (req, res) => {
-  console.log("📩 POST /api/users/:_id/exercises body:", req.body, "params:", req.params);
-
   const { description, duration, date } = req.body;
   const user = await User.findById(req.params._id);
-
-  if (!user) {
-    console.error("❌ User not found for ID:", req.params._id);
-    return res.json({ error: "User not found" });
-  }
+  if (!user) return res.json({ error: "User not found" });
 
   const exercise = new Exercise({
     userId: user._id,
@@ -80,30 +63,20 @@ app.post("/api/users/:_id/exercises", async (req, res) => {
 
   const savedExercise = await exercise.save();
 
-  const response = {
+  res.json({
     username: user.username,
     description: savedExercise.description,
     duration: savedExercise.duration,
     date: savedExercise.date.toDateString(),
     _id: user._id
-  };
-
-  console.log("📤 Response:", response);
-
-  res.json(response);
+  });
 });
 
 // ✅ Get exercise logs
 app.get("/api/users/:_id/logs", async (req, res) => {
-  console.log("📩 GET /api/users/:_id/logs params:", req.params, "query:", req.query);
-
   const { from, to, limit } = req.query;
   const user = await User.findById(req.params._id);
-
-  if (!user) {
-    console.error("❌ User not found for ID:", req.params._id);
-    return res.json({ error: "User not found" });
-  }
+  if (!user) return res.json({ error: "User not found" });
 
   let filter = { userId: user._id };
   if (from || to) {
@@ -122,14 +95,16 @@ app.get("/api/users/:_id/logs", async (req, res) => {
     date: e.date.toDateString()
   }));
 
-  const response = {
+  res.json({
     username: user.username,
     count: log.length,
     _id: user._id,
     log
-  };
-
-  console.log("📤 Response:", response);
-
-  res.json(response);
+  });
 });
+
+// Start server
+const listener = app.listen(process.env.PORT || 3000, () => {
+  console.log("Server running on port " + listener.address().port);
+});
+// --- IGNORE ---
